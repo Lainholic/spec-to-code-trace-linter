@@ -31,7 +31,7 @@ Judges can evaluate **Spec-to-Code Trace & Linter** through three transparent pa
 | **Bitbucket Cloud PRs** | `PR #1` (`PLAT-33510`), `PR #2` (`PLAT-33511`) | Linked diffs | Real git diff parsing with noise filtering & `#chg-` hunk links. |
 
 2. **Path B — Install in Your Own Atlassian Developer Site** *(via Forge Install Link / `forge install`)*:
-   - Enable sharing in Atlassian Developer Console and install the app onto any Jira + Confluence Cloud site, link Bitbucket Cloud OAuth 2.0 (3LO), and follow [`docs/SHOWCASE_SCENARIO.md`](file:///C:/AI/projects/codegeist-2026/docs/SHOWCASE_SCENARIO.md) to reproduce the blocked-to-passed lifecycle cleanly on your own site.
+   - Enable sharing in Atlassian Developer Console and install the app onto any Jira + Confluence Cloud site, link Bitbucket Cloud OAuth 2.0 (3LO), and follow [`docs/SHOWCASE_SCENARIO.md`](SHOWCASE_SCENARIO.md) to reproduce the blocked-to-passed lifecycle cleanly on your own site.
 3. **Path C — Self-Hosted Automated Verification (`Node.js 24`)**:
    - Clone the repository and run `node --test tests/*.test.mjs` (`72/72` offline unit & integration tests covering ADF extraction, diff chunking/noise filtering, citation verification, KVS caching, diff-grounded Rovo/Jira remediation, spec linter resilience, and fail-closed workflow gate hardening).
 
