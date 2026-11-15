@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spec-to-Code Trace &amp; Linter — Codegeist 2026 Demo Deck</title>
+  <style>
+    :root {
+      --bg-canvas: #090d16;
+      --bg-surface: #111827;
+      --bg-card: #161f32;
+      --bg-elevated: #1c2740;
+      --bg-code: #0b111e;
+      --border-subtle: rgba(148, 163, 184, 0.2);
+      --border-strong: rgba(148, 163, 184, 0.36);
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --accent-blue: #388bff;
+      --accent-cyan: #22d3ee;
+      --accent-purple: #a78bfa;
+      --accent-green: #22c55e;
+      --accent-amber: #f59e0b;
+      --accent-red: #f87171;
+      --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif;
+      --font-mono: "Cascadia Code", "JetBrains Mono", Consolas, "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background:
+        radial-gradient(1100px 560px at 14% -8%, rgba(56, 139, 255, 0.16), transparent 60%),
+        radial-gradient(900px 520px at 88% 108%, rgba(167, 139, 250, 0.14), transparent 60%),
+        var(--bg-canvas);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+    }
+
+    .deck-shell {
+      max-width: 1860px;
+      margin: 0 auto;
+      padding: 20px 32px 24px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .tabs {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+    }
+
+    .deck-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 14px 22px;
+      background: rgba(17, 24, 39, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #2684ff, #7c3aed);
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: 0.04em;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .brand-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .tablist {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tablist button[role="tab"] {
+      position: relative;
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 18px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+    }
+
+    .tablist button[role="tab"]:hover {
+      color: var(--text-primary);
+      background: rgba(148, 163, 184, 0.08);
+    }
+
+    .tablist button[role="tab"]:focus-visible {
+      outline: 2px solid var(--accent-cyan);
+      outline-offset: 2px;
+    }
+
+    .tablist button[role="tab"][aria-selected="true"] {
+      color: var(--text-primary);
+      background: rgba(56, 139, 255, 0.14);
+      border-color: rgba(56, 139, 255, 0.36);
+    }
+
+    /* Underline indicator via pseudo-element border so box dimensions never shift */
+    .tablist button[role="tab"][aria-selected="true"]::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 3px;
+      border-bottom: 3px solid var(--accent-blue);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .pill-blue {
+      background: rgba(56, 139, 255, 0.16);
+      border-color: rgba(56, 139, 255, 0.35);
+      color: #93c5fd;
+    }
+
+    .pill-green {
+      background: rgba(34, 197, 94, 0.16);
+      border-color: rgba(34, 197, 94, 0.38);
+      color: #86efac;
+    }
+
+    .pill-amber {
+      background: rgba(245, 158, 11, 0.16);
+      border-color: rgba(245, 158, 11, 0.38);
+      color: #fcd34d;
+    }
+
+    .pill-red {
+      background: rgba(248, 113, 113, 0.16);
+      border-color: rgba(248, 113, 113, 0.42);
+      color: #fca5a5;
+    }
+
+    .pill-purple {
+      background: rgba(167, 139, 250, 0.16);
+      border-color: rgba(167, 139, 250, 0.4);
+      color: #ddd6fe;
+    }
+
+    /* Grid stack container without gap so hidden=until-found panels leave zero phantom spacing */
+    .panels {
+      display: grid;
+      flex: 1;
+    }
+
+    /* Zero padding, border, margin, or background on role="tabpanel" itself per tabs rule */
+    .panels > [role="tabpanel"] {
+      grid-area: 1 / 1;
+      padding: 0;
+      border: 0;
+      margin: 0;
+      background: transparent;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* hidden=until-found preserves layout box via content-visibility: hidden; prevent hit-test interception */
+    .panels > [role="tabpanel"][hidden] {
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .panel-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 28px 32px;
+      min-height: 880px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 22px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+    }
+
+    .slide-top {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 18px;
+    }
+
+    .eyebrow {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-cyan);
+      margin-bottom: 6px;
+    }
+
+    h1, h2 {
+      margin: 0;
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .lead {
+      margin: 8px 0 0;
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 980px;
+      line-height: 1.45;
+    }
+
+    /* Slide 1: Split-Screen Problem */
+    .split-stage {
+      display: grid;
+      grid-template-columns: 1fr 96px 1fr;
+      gap: 18px;
+      align-items: stretch;
+      flex: 1;
+    }
+
+    .doc-pane {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .pane-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .pane-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .spec-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--accent-blue);
+      border-radius: 10px;
+      padding: 13px 16px;
+    }
+
+    .spec-item.critical {
+      border-left-color: var(--accent-red);
+    }
+
+    .spec-item.sla {
+      border-left-color: var(--accent-amber);
+    }
+
+    .spec-item-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 5px;
+    }
+
+    .spec-name {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .spec-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .drift-bridge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .gap-badge {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      padding: 14px 10px;
+      border-radius: 999px;
+      background: rgba(248, 113, 113, 0.14);
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      color: #fca5a5;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .diff-window {
+      background: var(--bg-code);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.55;
+      color: #cbd5e1;
+      flex: 1;
+    }
+
+    .diff-line {
+      display: flex;
+      gap: 12px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .diff-line.add {
+      background: rgba(34, 197, 94, 0.12);
+      color: #bbf7d0;
+    }
+
+    .diff-line.del {
+      background: rgba(248, 113, 113, 0.14);
+      color: #fecaca;
+    }
+
+    .diff-line.gap {
+      background: rgba(245, 158, 11, 0.14);
+      color: #fde68a;
+      margin-top: 6px;
+      border-left: 3px solid var(--accent-amber);
+    }
+
+    .rubber-stamp {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      background: rgba(248, 113, 113, 0.11);
+      border: 1px solid rgba(248, 113, 113, 0.4);
+      border-radius: 12px;
+      padding: 14px 18px;
+    }
+
+    .solution-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      background: linear-gradient(90deg, rgba(56, 139, 255, 0.12), rgba(167, 139, 250, 0.12));
+      border: 1px solid rgba(56, 139, 255, 0.35);
+      border-radius: 14px;
+      padding: 16px 22px;
+    }
+
+    .strip-stat strong {
+      display: block;
+      font-size: 15px;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+
+    .strip-stat span {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Slide 2: Recording Cue Launchpad */
+    .timer-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      padding: 10px 16px;
+    }
+
+    .timer-readout {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      min-width: 96px;
+      color: var(--accent-cyan);
+    }
+
+    .timer-btn {
+      appearance: none;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 13px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .timer-btn.primary {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: #ffffff;
+    }
+
+    .cue-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .cue-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .cue-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .cue-time {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+    }
+
+    .cue-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 4px 0 6px;
+    }
+
+    .cue-list {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.48;
+    }
+
+    .cue-link {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #93c5fd;
+      word-break: break-all;
+      background: var(--bg-code);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 7px 10px;
+      text-decoration: none;
+    }
+
+    .cue-link:hover {
+      border-color: var(--accent-blue);
+      color: #ffffff;
+    }
+
+    .prompts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .prompt-box {
+      background: var(--bg-card);
+      border: 1px solid rgba(167, 139, 250, 0.36);
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .prompt-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .prompt-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ddd6fe;
+    }
+
+    .prompt-box pre {
+      margin: 0;
+      background: var(--bg-code);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px 14px;
+      white-space: pre-wrap;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--text-primary);
+    }
+
+    /* Copy button pattern per modern-web-guidance copy-button rule */
+    .copy {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .copy-button {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-inline-size: 92px;
+      min-block-size: 32px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(167, 139, 250, 0.5);
+      background: rgba(167, 139, 250, 0.16);
+      color: #ede9fe;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .copy-button:hover {
+      background: rgba(167, 139, 250, 0.28);
+    }
+
+    .copy-button:focus-visible {
+      outline: 2px solid var(--accent-cyan);
+      outline-offset: 2px;
+    }
+
+    .copy .tip {
+      font-size: 12px;
+      font-weight: 700;
+      color: #86efac;
+      background: rgba(34, 197, 94, 0.18);
+      border: 1px solid rgba(34, 197, 94, 0.45);
+      border-radius: 6px;
+      padding: 3px 8px;
+      opacity: 0;
+      transition: opacity 160ms ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .copy .tip.is-visible {
+      opacity: 1;
+    }
+
+    /* Slide 3: Outro 4-Surface Architecture */
+    .surface-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .surface-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .surface-num {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+    }
+
+    .surface-name {
+      font-size: 19px;
+      font-weight: 800;
+    }
+
+    .surface-module {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #93c5fd;
+      background: var(--bg-code);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 5px 8px;
+      align-self: flex-start;
+    }
+
+    .surface-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.48;
+      margin: 0;
+    }
+
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .trust-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+
+    .trust-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .trust-card p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.48;
+    }
+
+    .metrics-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      background: linear-gradient(90deg, rgba(34, 197, 94, 0.1), rgba(56, 139, 255, 0.12));
+      border: 1px solid rgba(56, 139, 255, 0.34);
+      border-radius: 14px;
+      padding: 16px 20px;
+    }
+
+    .metric-cell strong {
+      display: block;
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .metric-cell span {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .slide-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="deck-shell">
+    <div class="tabs">
+      <header class="deck-header">
+        <div class="brand">
+          <div class="brand-mark">SC</div>
+          <div>
+            <div class="brand-title">Spec-to-Code Trace &amp; Linter</div>
+            <div class="brand-sub">Atlassian Codegeist 2026 &middot; Forge Native UI Kit + Rovo Agent + Workflow Gate</div>
+          </div>
+        </div>
+
+        <div class="tablist" role="tablist" focusgroup="tablist nomemory" aria-label="Demo Video Deck Slides">
+          <button type="button" role="tab" id="slide-1-tab" aria-selected="true" tabindex="0" focusgroupstart>
+            1 &middot; Act 1 Cover: Spec Drift
+          </button>
+          <button type="button" role="tab" id="slide-2-tab" aria-selected="false" tabindex="-1">
+            2 &middot; Acts 2–5: Recording Cue Launchpad
+          </button>
+          <button type="button" role="tab" id="slide-3-tab" aria-selected="false" tabindex="-1">
+            3 &middot; Outro: 4-Surface Architecture
+          </button>
+        </div>
+
+        <div class="header-meta">
+          <span class="pill pill-blue">Node 24.x ESM</span>
+          <span class="pill pill-green">dev v4.1 &middot; prod v3.1</span>
+        </div>
+      </header>
+
+      <main class="panels">
+        <!-- SLIDE 1: ACT 1 COVER -->
+        <section role="tabpanel" aria-labelledby="slide-1-tab" tabindex="0">
+          <div class="panel-card">
+            <div class="slide-top">
+              <div>
+                <div class="eyebrow">Act 1 &middot; 00:00 – 00:45 &middot; The Problem &amp; Hook</div>
+                <h1>Spec Drift Ends With Verified Code Citations</h1>
+                <p class="lead">
+                  Confluence PRDs carefully specify security controls and deprecations, yet multi-thousand-line Bitbucket diffs trigger rubber-stamp approvals and premature Jira completions.
+                </p>
+              </div>
+              <span class="pill pill-red">04:30 Demo Intro Frame</span>
+            </div>
+
+            <div class="split-stage">
+              <div class="doc-pane">
+                <div class="pane-head">
+                  <div>
+                    <div class="pane-title">Confluence PRD Spec</div>
+                    <div class="brand-sub">Page ID: 5111809 &middot; E2E Narrative &amp; Deletion Spec</div>
+                  </div>
+                  <span class="pill pill-blue">Authoritative Contract</span>
+                </div>
+
+                <div class="spec-item">
+                  <div class="spec-item-top">
+                    <span class="spec-name">1. HMAC-SHA256 Signature Check</span>
+                    <span class="pill pill-green">Testable</span>
+                  </div>
+                  <div class="spec-desc">Every incoming webhook payload must call <code>verifyWebhookSignature</code> before dispatch.</div>
+                </div>
+
+                <div class="spec-item critical">
+                  <div class="spec-item-top">
+                    <span class="spec-name">2. Remove Legacy MD5 Auth</span>
+                    <span class="pill pill-red">Deletion Required</span>
+                  </div>
+                  <div class="spec-desc"><code>allowInsecureMd5Auth</code> fallback must be completely removed from authentication middleware.</div>
+                </div>
+
+                <div class="spec-item">
+                  <div class="spec-item-top">
+                    <span class="spec-name">3. Enforce Burst Rate Limit</span>
+                    <span class="pill pill-green">Testable</span>
+                  </div>
+                  <div class="spec-desc">Reject abusive callers exceeding threshold with HTTP 429 inside <code>enforceRateLimit</code>.</div>
+                </div>
+
+                <div class="spec-item sla">
+                  <div class="spec-item-top">
+                    <span class="spec-name">4. p99 Latency Under 180ms</span>
+                    <span class="pill pill-amber">Non-Diff Runtime SLA</span>
+                  </div>
+                  <div class="spec-desc">Runtime telemetry criterion separated into Out of Scope instead of stalling PR verification.</div>
+                </div>
+              </div>
+
+              <div class="drift-bridge" aria-hidden="true">
+                <div class="gap-badge">SPEC DRIFT GAP</div>
+              </div>
+
+              <div class="doc-pane">
+                <div class="pane-head">
+                  <div>
+                    <div class="pane-title">Bitbucket Cloud PR Diff</div>
+                    <div class="brand-sub">40 Changed Files &middot; 2,000+ Raw Lines + Lockfile Noise</div>
+                  </div>
+                  <span class="pill pill-amber">PR Reviewer Overload</span>
+                </div>
+
+                <div class="diff-window">
+                  <div class="diff-line"><span>L14</span><span>+ package-lock.json (38,412 lines skipped by noise filter...)</span></div>
+                  <div class="diff-line"><span>L88</span><span>@@ src/middleware/webhook.js @@</span></div>
+                  <div class="diff-line add"><span>+[L92]</span><span>+ return next(); // fast path added before signature check</span></div>
+                  <div class="diff-line"><span>L104</span><span>@@ src/auth/legacy.js @@</span></div>
+                  <div class="diff-line del"><span>-[L108]</span><span>- // TODO: remove allowInsecureMd5Auth before GA</span></div>
+                  <div class="diff-line add"><span>+[L109]</span><span>+ if (req.headers['x-legacy']) return allowInsecureMd5Auth(req);</span></div>
+                  <div class="diff-line gap"><span>GAP</span><span>Missing HMAC verification &amp; legacy MD5 code remains active in PR #1!</span></div>
+                </div>
+
+                <div class="rubber-stamp">
+                  <div>
+                    <strong style="display:block; font-size:16px; color:#fecaca;">Human Reviewer: "Looks fine, LGTM!"</strong>
+                    <span style="font-size:13px; color:var(--text-secondary);">Ticket dragged to <strong>Done</strong> in Jira with zero cryptographic evidence.</span>
+                  </div>
+                  <span class="pill pill-red">BLOCKED BY TRACE GATE</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="solution-strip">
+              <div class="strip-stat">
+                <strong>1. Noise-Filtered Real Diffs</strong>
+                <span>Strips lockfiles and build outputs, then verifies 1-based line citations strictly against raw Bitbucket hunks.</span>
+              </div>
+              <div class="strip-stat">
+                <strong>2. Physical Jira Workflow Gate</strong>
+                <span><code>jira:workflowValidator</code> blocks invalid transitions to <code>Done</code> until missing criteria reach zero.</span>
+              </div>
+              <div class="strip-stat">
+                <strong>3. Readiness + Rovo TDD Fix</strong>
+                <span>Flags runtime SLAs upfront in Confluence and scaffolds missing code + fail-first tests in Rovo Chat.</span>
+              </div>
+            </div>
+
+            <div class="slide-footer">
+              <span>Target App: <strong>Spec-to-Code Trace &amp; Linter</strong> &middot; Codegeist 2026</span>
+              <span>Next Cue: Switch Brave to Confluence <code>5111809</code> for Act 2 (00:45)</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 2: ACTS 2-5 LAUNCHPAD -->
+        <section role="tabpanel" aria-labelledby="slide-2-tab" hidden="until-found">
+          <div class="panel-card">
+            <div class="slide-top">
+              <div>
+                <div class="eyebrow">Live Screen Recording Control &middot; Acts 2–5 + Outro</div>
+                <h2>5-Minute Demo Recording Cue Launchpad</h2>
+                <p class="lead">
+                  Open Brave tabs before hitting Record. Pre-reset <strong>PLAT-33511</strong> from Done back to To Do so Act 4 proves the live transition.
+                </p>
+              </div>
+              <div class="timer-bar" aria-label="4 minute 30 second demo pacing timer">
+                <span class="timer-readout" id="demo-timer">04:30</span>
+                <button type="button" class="timer-btn primary" id="timer-start">Start</button>
+                <button type="button" class="timer-btn" id="timer-pause">Pause</button>
+                <button type="button" class="timer-btn" id="timer-reset">Reset</button>
+              </div>
+            </div>
+
+            <div class="cue-grid">
+              <article class="cue-card">
+                <div>
+                  <div class="cue-head">
+                    <span class="cue-time">00:00 – 00:45</span>
+                    <span class="pill pill-blue">Act 1 &middot; Slide 1</span>
+                  </div>
+                  <div class="cue-title">Spec Drift Problem Hook</div>
+                  <ul class="cue-list">
+                    <li>Show Slide 1 fullscreen in Brave.</li>
+                    <li>Contrast Confluence contract vs noisy 2k-line PR diff.</li>
+                    <li>Introduce 4 Forge surfaces &amp; citation grounding.</li>
+                  </ul>
+                </div>
+                <span class="cue-link">Slide Tab 1 &rarr; Split-Screen Cover</span>
+              </article>
+
+              <article class="cue-card">
+                <div>
+                  <div class="cue-head">
+                    <span class="cue-time">00:45 – 01:30</span>
+                    <span class="pill pill-cyan pill-blue">Act 2 &middot; Confluence</span>
+                  </div>
+                  <div class="cue-title">Surface 1: Spec Readiness Linter</div>
+                  <ul class="cue-list">
+                    <li>Click <strong>Spec Readiness Linter</strong> byline item.</li>
+                    <li>Highlight <code>3 / 4 (75%)</code> readiness score.</li>
+                    <li>Point out 1 Runtime SLA marked Non-Diff (yellow).</li>
+                  </ul>
+                </div>
+                <a class="cue-link" href="https://one-atlas-hebl.atlassian.net/wiki/spaces/MSD/pages/5111809/E2E+Narrative+Deletion+Spec" target="_blank" rel="noreferrer">one-atlas-hebl.atlassian.net/wiki/spaces/MSD/.../5111809</a>
+              </article>
+
+              <article class="cue-card">
+                <div>
+                  <div class="cue-head">
+                    <span class="cue-time">01:30 – 02:45</span>
+                    <span class="pill pill-red">Act 3 &middot; Gate Block</span>
+                  </div>
+                  <div class="cue-title">Surfaces 2 &amp; 3: Blocked Transition</div>
+                  <ul class="cue-list">
+                    <li>Open <strong>PLAT-33510</strong> panel: <code>1 / 12 (8%)</code>, 11 Missing.</li>
+                    <li>Note <code>Workflow Gate: BLOCKED</code> lozenge.</li>
+                    <li>Transition status to <strong>Done</strong> &rarr; capture red validator error.</li>
+                  </ul>
+                </div>
+                <a class="cue-link" href="https://one-atlas-hebl.atlassian.net/browse/PLAT-33510" target="_blank" rel="noreferrer">one-atlas-hebl.atlassian.net/browse/PLAT-33510</a>
+              </article>
+
+              <article class="cue-card">
+                <div>
+                  <div class="cue-head">
+                    <span class="cue-time">02:45 – 03:30</span>
+                    <span class="pill pill-green">Act 4 &middot; Verified Pass</span>
+                  </div>
+                  <div class="cue-title">Citations, Removal Badge &amp; Pass</div>
+                  <ul class="cue-list">
+                    <li>Open <strong>PLAT-33511</strong> (pre-reset to To Do): <code>3 / 3 (100%)</code> PASS.</li>
+                    <li>Select <code>Found (3)</code> tab: <code>verifyWebhookSignature</code>, <code>(removed)</code> badge, <code>#chg-</code> link.</li>
+                    <li>Click <strong>Export Review Markdown</strong>, then transition to <strong>Done</strong> cleanly.</li>
+                  </ul>
+                </div>
+                <a class="cue-link" href="https://one-atlas-hebl.atlassian.net/browse/PLAT-33511" target="_blank" rel="noreferrer">one-atlas-hebl.atlassian.net/browse/PLAT-33511</a>
+              </article>
+
+              <article class="cue-card">
+                <div>
+                  <div class="cue-head">
+                    <span class="cue-time">03:30 – 04:15</span>
+                    <span class="pill pill-purple">Act 5 &middot; Rovo Agent</span>
+                  </div>
+                  <div class="cue-title">Surface 4: Rovo Chat &amp; TDD Fix</div>
+                  <ul class="cue-list">
+                    <li>Open <strong>Spec-to-Code Trace</strong> in Rovo Chat.</li>
+                    <li>Run Prompt 1 (<code>verify-issue-spec-action</code>).</li>
+                    <li>Run Prompt 2 (<code>suggest-fix-action</code>) &rarr; code + <code>assert.rejects</code>.</li>
+                  </ul>
+                </div>
+                <span class="cue-link">Use Copy buttons below for zero-typo Rovo paste</span>
+              </article>
+
+              <article class="cue-card">
+                <div>
+                  <div class="cue-head">
+                    <span class="cue-time">04:15 – 04:30</span>
+                    <span class="pill pill-green">Outro &middot; Slide 3</span>
+                  </div>
+                  <div class="cue-title">4-Surface Forge Architecture Wrap</div>
+                  <ul class="cue-list">
+                    <li>Return to Slide 3 fullscreen closing card.</li>
+                    <li>Emphasize 3 minimal scopes &amp; per-user KVS isolation.</li>
+                    <li>Wrap voiceover inside 05:00 YouTube / Devpost limit.</li>
+                  </ul>
+                </div>
+                <span class="cue-link">Slide Tab 3 &rarr; Architecture &amp; Security Proof</span>
+              </article>
+            </div>
+
+            <div class="prompts-row">
+              <div class="prompt-box">
+                <div class="prompt-header">
+                  <span class="prompt-title">Rovo Prompt 1 &middot; PR vs Spec Verification (<code>verify-issue-spec-action</code>)</span>
+                  <span class="copy">
+                    <button type="button" class="copy-button" command="--copy" commandfor="rovo-prompt-1" aria-label="Copy Rovo Prompt 1">
+                      <span class="icon" aria-hidden="true">&#x29C9;</span>
+                      <span>Copy</span>
+                    </button>
+                    <span class="tip" role="status"></span>
+                  </span>
+                </div>
+                <pre><code id="rovo-prompt-1">Verify the linked PR on PLAT-33510 against its Confluence spec.</code></pre>
+              </div>
+
+              <div class="prompt-box">
+                <div class="prompt-header">
+                  <span class="prompt-title">Rovo Prompt 2 &middot; TDD Fix Scaffold (<code>suggest-fix-action</code>)</span>
+                  <span class="copy">
+                    <button type="button" class="copy-button" command="--copy" commandfor="rovo-prompt-2" aria-label="Copy Rovo Prompt 2">
+                      <span class="icon" aria-hidden="true">&#x29C9;</span>
+                      <span>Copy</span>
+                    </button>
+                    <span class="tip" role="status"></span>
+                  </span>
+                </div>
+                <pre><code id="rovo-prompt-2">Suggest a fix and unit test scaffold for the missing requirement on PLAT-33510.</code></pre>
+              </div>
+            </div>
+
+            <div class="slide-footer">
+              <span>FFmpeg Packager: <code>.\scripts\package-demo-video.ps1 -InputPath raw.mp4</code></span>
+              <span>Hard Gate: Final duration must stay strictly under 300.0s (5 minutes)</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 3: OUTRO ARCHITECTURE -->
+        <section role="tabpanel" aria-labelledby="slide-3-tab" hidden="until-found">
+          <div class="panel-card">
+            <div class="slide-top">
+              <div>
+                <div class="eyebrow">Outro &middot; 04:15 – 04:30 &middot; Architecture &amp; Security Proof</div>
+                <h2>4 Native Forge Surfaces &middot; Enterprise Trust Boundaries</h2>
+                <p class="lead">
+                  100% hosted on Atlassian Forge Node 24.x runtime with zero external servers, zero plaintext API secrets, and verifiable deterministic evidence.
+                </p>
+              </div>
+              <span class="pill pill-green">Bring Truth Back to PRs</span>
+            </div>
+
+            <div class="surface-grid">
+              <div class="surface-card">
+                <span class="surface-num">SURFACE 01</span>
+                <div class="surface-name">Confluence Byline</div>
+                <span class="surface-module">confluence:contentBylineItem</span>
+                <p class="surface-desc">
+                  <strong>Spec Readiness Linter</strong> inspects ADF documents in narrative or structured modes and flags non-diff SLAs before coding begins.
+                </p>
+              </div>
+
+              <div class="surface-card">
+                <span class="surface-num">SURFACE 02</span>
+                <div class="surface-name">Jira Issue Panel</div>
+                <span class="surface-module">jira:issuePanel</span>
+                <p class="surface-desc">
+                  Displays coverage meter, tabbed verdict cards (<code>Missing Risk</code>, <code>Found</code>, <code>Needs Context</code>, <code>Out of Scope</code>), deletion badges, and Markdown export.
+                </p>
+              </div>
+
+              <div class="surface-card">
+                <span class="surface-num">SURFACE 03</span>
+                <div class="surface-name">Workflow Gate</div>
+                <span class="surface-module">jira:workflowValidator</span>
+                <p class="surface-desc">
+                  <strong>Spec-to-Code Trace Gate</strong> cross-checks aggregate <code>trace:gate:v1</code> state against live <code>api.asApp()</code> page links and blocks incomplete <code>Done</code> moves.
+                </p>
+              </div>
+
+              <div class="surface-card">
+                <span class="surface-num">SURFACE 04</span>
+                <div class="surface-name">Rovo Agent</div>
+                <span class="surface-module">rovo:agent + 3 actions</span>
+                <p class="surface-desc">
+                  <strong>Spec-to-Code Trace</strong> executes <code>lint-confluence-spec-action</code>, <code>verify-issue-spec-action</code>, and TDD <code>suggest-fix-action</code> in chat.
+                </p>
+              </div>
+            </div>
+
+            <div class="trust-grid">
+              <div class="trust-card">
+                <h3>Syntactic Citation Verification</h3>
+                <p>
+                  Every LLM-proposed file path, snippet, and 1-based line number is validated against raw unified diff hunks (<code>+[L&lt;num&gt;]</code> / <code>-[L&lt;num&gt;]</code>). Hallucinated references are stripped automatically.
+                </p>
+              </div>
+
+              <div class="trust-card">
+                <h3>Enterprise Isolation &amp; Least Privilege</h3>
+                <p>
+                  Per-user KVS snapshots isolate Bitbucket 3LO OAuth tokens across reviewers, while the manifest requests only 3 read/storage scopes with zero Jira or Confluence write scopes.
+                </p>
+              </div>
+
+              <div class="trust-card">
+                <h3>Timeout-Safe Forge Execution</h3>
+                <p>
+                  Deterministic lockfile filtering, chunk budgeting, <code>Promise.allSettled</code> batch isolation, and an 18-second runtime guard keep multi-file PR audits inside Forge's 25-second FaaS limit.
+                </p>
+              </div>
+            </div>
+
+            <div class="metrics-strip">
+              <div class="metric-cell">
+                <strong>72 / 72 PASS</strong>
+                <span>Automated Node 24 test suite</span>
+              </div>
+              <div class="metric-cell">
+                <strong>3 Scopes</strong>
+                <span>Zero write or delete privileges</span>
+              </div>
+              <div class="metric-cell">
+                <strong>dev v4.1 / prod v3.1</strong>
+                <span>Cloud deployments verified</span>
+              </div>
+              <div class="metric-cell">
+                <strong>18s Guard</strong>
+                <span>Bounded parallel LLM batches</span>
+              </div>
+              <div class="metric-cell">
+                <strong>@forge/llm</strong>
+                <span>Platform-hosted inference + 3LO</span>
+              </div>
+            </div>
+
+            <div class="slide-footer">
+              <span>Built for <strong>Atlassian Codegeist 2026</strong> &middot; MIT Licensed</span>
+              <span>Thank you for watching &middot; Try it live via Testing Instructions</span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const tablist = document.querySelector('[role="tablist"]');
+      const tabs = Array.from(tablist.querySelectorAll('[role="tab"]'));
+      const panels = Array.from(document.querySelectorAll('.panels > [role="tabpanel"]'));
+
+      function activateTab(nextTab, moveFocus) {
+        tabs.forEach((tab, index) => {
+          const isTarget = tab === nextTab;
+          tab.setAttribute('aria-selected', String(isTarget));
+          tab.tabIndex = isTarget ? 0 : -1;
+          const panel = panels[index];
+          if (isTarget) {
+            panel.removeAttribute('hidden');
+          } else {
+            panel.setAttribute('hidden', 'until-found');
+          }
+        });
+        if (moveFocus) {
+          nextTab.focus();
+        }
+      }
+
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => activateTab(tab, false));
+      });
+
+      panels.forEach((panel, index) => {
+        panel.addEventListener('beforematch', () => {
+          activateTab(tabs[index], false);
+        });
+      });
+
+      /* Keyboard arrow/Home/End fallback only when native focusGroup is unavailable */
+      if (!Object.hasOwn(HTMLElement.prototype, 'focusGroup')) {
+        tablist.addEventListener('keydown', (event) => {
+          const currentIndex = tabs.indexOf(document.activeElement);
+          if (currentIndex === -1) return;
+          let targetIndex = -1;
+          if (event.key === 'ArrowRight') {
+            targetIndex = (currentIndex + 1) % tabs.length;
+          } else if (event.key === 'ArrowLeft') {
+            targetIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+          } else if (event.key === 'Home') {
+            targetIndex = 0;
+          } else if (event.key === 'End') {
+            targetIndex = tabs.length - 1;
+          }
+          if (targetIndex !== -1) {
+            event.preventDefault();
+            activateTab(tabs[targetIndex], true);
+          }
+        });
+      }
+
+      /* Copy button pattern: single event path (CommandEvent if supported, click otherwise) */
+      const copyTimers = new WeakMap();
+      let lastCopiedMessage = '';
+
+      function legacyCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (!ok) throw new Error('execCommand copy failed');
+      }
+
+      function showCopyFeedback(btn, label) {
+        const wrapper = btn.closest('.copy');
+        const tip = wrapper ? wrapper.querySelector('.tip') : null;
+        if (!tip) return;
+        const msg = label === lastCopiedMessage ? label + '\u00A0' : label;
+        lastCopiedMessage = msg;
+        tip.textContent = msg;
+        tip.classList.add('is-visible');
+        const prev = copyTimers.get(btn);
+        if (prev) clearTimeout(prev);
+        copyTimers.set(btn, setTimeout(() => {
+          tip.classList.remove('is-visible');
+          tip.textContent = '';
+          copyTimers.delete(btn);
+        }, 1800));
+      }
+
+      async function handleCopyTrigger(btn) {
+        const targetId = btn.getAttribute('commandfor');
+        const targetEl = targetId ? document.getElementById(targetId) : null;
+        if (!targetEl) return;
+        const text = targetEl.textContent || '';
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            legacyCopy(text);
+          }
+          showCopyFeedback(btn, 'Copied');
+        } catch (_err) {
+          try {
+            legacyCopy(text);
+            showCopyFeedback(btn, 'Copied');
+          } catch (_fallbackErr) {
+            showCopyFeedback(btn, 'Copy failed');
+          }
+        }
+      }
+
+      if ('CommandEvent' in window) {
+        document.addEventListener('command', (event) => {
+          if (event.command !== '--copy') return;
+          const btn = event.source;
+          if (!(btn instanceof HTMLElement) || !btn.matches('.copy-button')) return;
+          handleCopyTrigger(btn);
+        }, true);
+      } else {
+        document.addEventListener('click', (event) => {
+          const btn = event.target instanceof Element ? event.target.closest('.copy-button') : null;
+          if (!btn) return;
+          handleCopyTrigger(btn);
+        });
+      }
+
+      /* 04:30 Recording Countdown Timer */
+      const timerEl = document.getElementById('demo-timer');
+      const startBtn = document.getElementById('timer-start');
+      const pauseBtn = document.getElementById('timer-pause');
+      const resetBtn = document.getElementById('timer-reset');
+      let remainingSeconds = 270;
+      let timerId = null;
+
+      function renderTimer() {
+        const mins = String(Math.floor(remainingSeconds / 60)).padStart(2, '0');
+        const secs = String(remainingSeconds % 60).padStart(2, '0');
+        timerEl.textContent = mins + ':' + secs;
+        timerEl.style.color = remainingSeconds <= 30 ? '#f87171' : '#22d3ee';
+      }
+
+      startBtn.addEventListener('click', () => {
+        if (timerId !== null) return;
+        timerId = setInterval(() => {
+          if (remainingSeconds > 0) {
+            remainingSeconds -= 1;
+            renderTimer();
+          } else {
+            clearInterval(timerId);
+            timerId = null;
+          }
+        }, 1000);
+      });
+
+      pauseBtn.addEventListener('click', () => {
+        if (timerId === null) return;
+        clearInterval(timerId);
+        timerId = null;
+      });
+
+      resetBtn.addEventListener('click', () => {
+        if (timerId !== null) {
+          clearInterval(timerId);
+          timerId = null;
+        }
+        remainingSeconds = 270;
+        renderTimer();
+      });
+
+      renderTimer();
+    })();
+  </script>
+</body>
+</html>
